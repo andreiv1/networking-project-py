@@ -1,13 +1,17 @@
 from tabulate import tabulate
 import socket
+import threading
 import json
+import sys
+from threading import Lock
 from datetime import datetime
 from transfer import Request, Response
 
 HOST = 'localhost'
-PORT = 4449
+PORT = 5556
 BUFFER_SIZE = 1024
 
+lock = Lock()
 
 def help_menu():
     print("==================   COMMANDS: ===================================")
@@ -20,9 +24,11 @@ def help_menu():
     print("==================================================================")
 
 def send_command(server, command, param=None):
+    lock.acquire()
     request = Request(command=command, params=param)
     server.sendall(str(request).encode('utf-8'))
     data = server.recv(BUFFER_SIZE).decode('utf-8')
+    lock.release()
     response = Response.from_json(data)
     return response
 
@@ -32,29 +38,51 @@ def auth(server, user):
 
 def list_resources(server):
     response = send_command(server, "list_resources")
-    # print(str(response))
+
 
     # print(str(resources))
     headers = ["ID", "Resource", "Capacity", "Unit Measure", "Reservations"]
     table_data = []
     for resource in response.get_message():
-        reservations = resource["reservations"]
-        reservation_table_data = [[r["reservation_id"],r["user"],r["quantity"],r["start_date"], r["end_date"]] for r in reservations]
-        resource_table_data = [resource["resource_id"], resource["name"], resource["maximum_capacity"], resource["unit_measure"],
-                               tabulate(reservation_table_data, headers=["Reservation ID", "User", "Quantity", "Start Date",
-                                                                         "Duration", "End Date"])]
-        table_data.append(resource_table_data)
+        # reservations = resource["reservations"]
+        # reservation_table_data = [[r["reservation_id"],r["user"],r["quantity"],r["start_date"], r["end_date"]] for r in reservations]
+        # resource_table_data = [resource["resource_id"], resource["name"], resource["maximum_capacity"], resource["unit_measure"],
+        #                        tabulate(reservation_table_data, headers=["Reservation ID", "User", "Quantity", "Start Date",
+        #                                                                   "Duration", "End Date"])]
+        print(resource)
+        # resource_table_data = [resource["resource_id"], resource["name"], resource["maximum_capacity"], resource["unit_measure"]]
+        # table_data.append(resource_table_data)
     print(tabulate(table_data, headers=headers))
 
 def block(server, params):
     response = send_command(server, 'block', params)
     print(response.get_message())
 
+def listen_for_notifications(server):
+    while True:
+        try:
+            lock.acquire()  # Acquire the lock before reading from the server
+            server.settimeout(0.5)
+            data = server.recv(BUFFER_SIZE).decode('utf-8')
+            lock.release()  # Release the lock after reading from the server
+            response = json.loads(data)
+            print(response)
+            if response["type"] == "notification":
+                sys.stdout.write("\r\033[K")
+                sys.stdout.flush()
+                print(f"Notification: {response['message']}\n>")
+                if response["action"] == "disconnect":
+                    exit()
+        except:
+            lock.release()  # Release the lock in case of an exception
+            pass
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.connect((HOST, PORT))
         user_input = input('Username: ')
         auth(server_socket, user_input)
+        listener_thread = threading.Thread(target=listen_for_notifications, args=(server_socket, ))
+        listener_thread.start()
         while user_input.strip() != 'exit':
             user_input = input('>')
             tokens = user_input.strip().split()

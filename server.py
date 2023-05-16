@@ -7,7 +7,7 @@ from datetime import datetime
 from transfer import Request, Response, Notification
 
 HOST = 'localhost'
-PORT = 4449
+PORT = 5556
 BUFFER_SIZE = 1024
 is_running = True
 
@@ -20,8 +20,13 @@ class User:
         self._client_socket = client_socket
 
     def send_message(self, message):
-        if _client_socket is not None:
-            self._client_socket.sendall(message.encode('utf-8'))
+        if self._client_socket is not None and isinstance(self._client_socket, socket.socket):
+            try:
+                self._client_socket.sendall(message.encode('utf-8'))
+            except:
+                pass
+        else:
+            self._client_socket = None
 
     @property
     def client_socket(self):
@@ -42,10 +47,10 @@ def get_user_by_name(name):
 
 
 def notify_all_users(message):
+    print(f"Notifying {len(users)} users with: {message}.")
     for user in users:
-        user.send_message(json.dumps({"type": "notification",
-                                      "action": None,
-                                      "message": message}))
+        notification = Notification(message)
+        user.send_message(str(notification))
 
 
 class ReservationList:
@@ -139,6 +144,7 @@ def handle_client(client):
                         response = Response(message=f'Welcome back, {user.name}')
                         user.client_socket.close()
                         user.client_socket = client
+                    notify_all_users(f'User {client_name} is active!')
                 # LIST
                 elif request.get_command() == 'list_resources':
                     resources = [resource.to_dict() for resource in Resources]
