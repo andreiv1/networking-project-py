@@ -4,7 +4,8 @@ import json
 from enum import Enum
 from datetime import datetime
 from transfer import Request, Response, Notification
-from server_classes import User, Resource, Reservation, ReservationStatus, ReservationQuantityOverflow
+from server_classes import User, Resource, Reservation, ReservationStatus
+from server_classes import ReservationQuantityOverflow, ReservationOverlapError
 
 HOST = 'localhost'
 PORT = 5556
@@ -45,6 +46,7 @@ def get_resource_by_id(resource_id):
     for resource in Resources:
         if resource.resource_id == resource_id:
             return resource
+    return None
 def process_request(request, client):
     print(str(request))
     # AUTH
@@ -78,6 +80,10 @@ def process_request(request, client):
             response = Response(message="Couldn't block the resource.")
         else:
             errors = []
+            resource_id = None
+            start = None
+            quantity = None
+            duration = None
             try:
                 resource_id = int(params[1])
             except ValueError:
@@ -99,8 +105,12 @@ def process_request(request, client):
             except ValueError:
                 errors.append("Duration must be a positive integer greater than 0.")
 
+            resource = get_resource_by_id(resource_id)
+            if resource is None:
+                errors.append("Resource ID is incorrect.")
+
             if len(errors) == 0:
-                resource = get_resource_by_id(resource_id)
+
                 reservation = Reservation(resource_id=resource_id,
                                           user_name=user.name,
                                           reserved_quantity=quantity,
@@ -110,12 +120,16 @@ def process_request(request, client):
                     resource.get_reservation_list().add(reservation)
                     reservation_json = reservation.to_dict()
                     response = Response(message=reservation_json)
+                    notify_all_users(f'{user.name} blocked {quantity} {resource.get_unit_measure()} of '
+                                     f'{resource.get_name()} starting at {" ".join(params[3:5])} '
+                                     f'for {duration} minutes',
+                                     username_to_exclude=user.name)
                 except ReservationQuantityOverflow as e:
                     response = Response(message=str(e))
-                notify_all_users(f'{user.name} blocked {quantity} {resource.get_unit_measure()} of '
-                                 f'{resource.get_name()} starting at {" ".join(params[3:5])} '
-                                 f'for {duration} minutes',
-                                 username_to_exclude=user.name)
+                except ReservationOverlapError as e:
+                    response = Response(message=str(e))
+
+
             else:
                 response = Response(message='Errors: \n' + "\n".join(errors))
     elif True:

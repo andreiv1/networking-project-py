@@ -38,7 +38,7 @@ def receive_response(server):
         except ConnectionResetError:
             print("Connection to the server closed")
             break
-
+        print(data)
         data_json = json.loads(data)
         if "type" in data_json:
             # print(data_json["type"])
@@ -46,8 +46,6 @@ def receive_response(server):
                 show_response(Response.from_json(data))
             elif data_json["type"] == "notification":
                 show_notification(Notification.from_json(data))
-
-
 
 
 def show_response(response):
@@ -58,7 +56,7 @@ def show_response(response):
             resources = message["resources"]
             # print(resources)
 
-            resource_headers = ["ID", "Resource", "Capacity", "Unit Measure", "", ""]
+            resource_headers = ["ID", "Resource", "Max Capacity", "Unit Measure", "", ""]
             resource_table = []
 
             reservations_headers = ["Reserv ID", "Username", "Quantity", "StartTime", "Duration", "Status"]
@@ -66,7 +64,7 @@ def show_response(response):
             for resource in resources:
                 resource_row = [
                     resource["resource_id"], resource["name"],
-                    f'{resource["current_capacity"]}/{resource["maximum_capacity"]}', resource["unit_measure"]
+                    resource["maximum_capacity"], resource["unit_measure"]
                 ]
                 resource_table.append(resource_row)
                 reservations_table = []
@@ -101,7 +99,10 @@ def show_notification(notification):
             if notification.get_action() == "exit":
                 raise TerminateMainThreadException()
 
+
 user_name = None
+
+
 def main():
     global user_name
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
@@ -120,7 +121,7 @@ def main():
                     if tokens[0] == 'help':
                         help_menu()
                     elif tokens[0] == 'list_resources':
-                        send_request(server_socket, Request(command="list_resources"))
+                        send_request(server_socket, Request(command="list"))
                     elif tokens[0] == 'block':
                         if len(tokens) < 6:
                             print("Usage: block <resourceID> <resourceQuantity> <dd/mm/yyyy> <HH:MM> <minutes>")
@@ -143,7 +144,6 @@ def main():
                         print("Unknown command, write 'help' to view commands.")
         except TerminateMainThreadException:
             sys.exit()
-
 
 
 if __name__ == '__main__':

@@ -38,23 +38,25 @@ class User:
 class ReservationQuantityOverflow(Exception):
     pass
 
-
+class ReservationOverlapError(Exception):
+    pass
 class ResourceReservationList:
     def __init__(self, maximum_capacity):
         self.reservations = []
-        self.capacity = 0
         self.maximum_capacity = maximum_capacity
         self.lock = threading.Lock()
 
-    def get_current_capacity(self):
-        return self.capacity
-
     def add(self, reservation):
         with self.lock:
-            if self.capacity + reservation.get_quantity() > self.maximum_capacity:
+            overlapping_reservations = [r for r in self.reservations
+                                        if r.start_time < reservation.end_time and r.end_time > reservation.start_time]
+            if overlapping_reservations:
+                raise ReservationOverlapError('Another reservation exists in the specified interval.')
+
+            if reservation.get_quantity() > self.maximum_capacity:
                 raise ReservationQuantityOverflow(f'The capacity tried to block ({reservation.get_quantity()}) '
                                                   f'is not possible.\n'
-                                                  f'Resource capacity: ({self.capacity}/{self.maximum_capacity})')
+                                                  f'Resource capacity: {self.maximum_capacity}')
             self.reservations.append(reservation)
 
     def remove(self, reservation):
@@ -93,7 +95,6 @@ class Resource:
         return {
             "resource_id": self.resource_id,
             "name": self.name,
-            "current_capacity": self.reservation_list.get_current_capacity(),
             "maximum_capacity": self.maximum_capacity,
             "unit_measure": self.unit_measure,
             "reservations": [reservation.to_dict() for reservation in self.reservation_list.reservations]
