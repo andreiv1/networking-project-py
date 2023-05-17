@@ -21,7 +21,7 @@ def help_menu():
     print("==================   COMMANDS: ===================================")
     print("** list_resources -> this shows the resources")
     print("** list_reservations -> this shows my resource reservation")
-    print("** block <resourceID> <resourceQuantity> <startDate> <startHour> <endDate> <endHour>")
+    print("** block <resourceID> <resourceQuantity> <startDate> <startHour> <durationInMinutes>")
     print("** cancel <reservationID>")
     print("** update <reservationID> <startDate> <startHour> <endDate> <endHour>")
     print("** finish <reservationID> -> only for blocked resources")
@@ -84,7 +84,7 @@ def show_notification(notification):
             if notification.get_action() == "exit":
                 raise TerminateMainThreadException()
 
-
+username = None
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.connect((HOST, PORT))
@@ -92,7 +92,8 @@ def main():
             receive_thread = threading.Thread(target=receive_response, args=(server_socket,))
             receive_thread.start()
             user_input = input('Username: ')
-            send_request(server_socket, Request(command="auth", params=user_input))
+            username = user_input
+            send_request(server_socket, Request(command="auth", params=username))
             send_request(server_socket, Request(command="list_resources"))
             while user_input.strip() != 'exit':
                 user_input = input()
@@ -104,10 +105,12 @@ def main():
                         send_request(server_socket, Request(command="list_resources"))
                     elif tokens[0] == 'block':
                         if len(tokens) < 6:
-                            print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> <duration>")
+                            print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> "
+                                  "<durationInMinutes>")
                         else:
-                            print("to send request")
-                            pass
+                            params = [username]
+                            params[1:] = tokens[1:]
+                            send_request(server_socket, Request(command="block", params=params))
 
                     elif tokens[0] == 'cancel':
                         if len(tokens) < 2:

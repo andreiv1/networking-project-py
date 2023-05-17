@@ -59,10 +59,12 @@ def notify_all_users(message, username_to_exclude=None, action=None):
             notified_users += 1
     print(f'Notified {notified_users} users with: {message}')
 
+
 def notify_user(user, message, action=None):
     notification = Notification(message, action)
     user.send_message(str(notification))
     print(f'Notified user {user.name} with: {message}, action=', str(action))
+
 
 class ReservationList:
     def __init__(self):
@@ -128,8 +130,10 @@ class Reservation:
         self.duration = duration
         self.status = status
 
+
 def process_request(request, client):
     print(str(request))
+    # AUTH
     if request.get_command() == 'auth':
         client_name = request.get_params()
         user = get_user_by_name(client_name)
@@ -154,12 +158,20 @@ def process_request(request, client):
         resources = {"resources": [resource.to_dict() for resource in Resources]}
         response = Response(message=resources)
     elif request.get_command() == 'block':
-        print(request.get_params)
-        response = Response(message="To do blocking")
+        params = request.get_params()
+        user = get_user_by_name(params[0])
+        if user is None:
+            response = Response(message="Couldn't block the resource.")
+        else:
+            response = Response(message="To do blocking")
+            notify_all_users(f'{user.name} blocked X quantity ? of starting at ? for X minutes',
+                             username_to_exclude=user.name)
     elif True:
         response = Response(message=f"Command {command} not found!")
 
     return response
+
+
 def handle_client(client):
     with client:
         while True:
