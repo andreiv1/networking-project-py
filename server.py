@@ -1,10 +1,10 @@
 import socket
 import threading
-import uuid
 import json
 from enum import Enum
 from datetime import datetime
 from transfer import Request, Response, Notification
+from server_classes import User, Resource, Reservation, ReservationStatus
 
 HOST = 'localhost'
 PORT = 5556
@@ -12,35 +12,6 @@ BUFFER_SIZE = 1024
 is_running = True
 
 users = []
-
-
-class User:
-    def __init__(self, name, client_socket):
-        self._name = name
-        self._client_socket = client_socket
-
-    def send_message(self, message):
-        if self._client_socket is not None and isinstance(self._client_socket, socket.socket):
-            try:
-                self._client_socket.sendall(message.encode('utf-8'))
-            except:
-                pass
-        else:
-            self._client_socket = None
-
-    @property
-    def client_socket(self):
-        return self._client_socket
-
-    @client_socket.setter
-    def client_socket(self, new_socket):
-        self._client_socket = new_socket
-
-    @property
-    def name(self):
-        return self._name
-
-
 def get_user_by_name(name):
     matched_users = [user for user in users if user.name == name]
     return matched_users[0] if matched_users else None
@@ -65,46 +36,6 @@ def notify_user(user, message, action=None):
     user.send_message(str(notification))
     print(f'Notified user {user.name} with: {message}, action=', str(action))
 
-
-class ReservationList:
-    def __init__(self):
-        self.reservations = []
-        self.lock = threading.Lock()
-
-    def add_reservation(self, reservation):
-        with self.lock:
-            self.reservations.append(reservation)
-
-    def remove_reservation(self, reservation):
-        with self.lock:
-            self.reservations.remove(reservation)
-
-    def get_reservations(self):
-        with self.lock:
-            return self.reservations[:]
-
-
-class Resource:
-    def __init__(self, resource_id, name, maximum_capacity, unit_measure):
-        self.resource_id = resource_id
-        self.name = name
-        self.maximum_capacity = maximum_capacity
-        self.unit_measure = unit_measure
-        self.reservation_list = ReservationList()
-
-    def get_available_capacity(self, start_time, end_time):
-        pass
-
-    def to_dict(self):
-        return {
-            "resource_id": self.resource_id,
-            "name": self.name,
-            "maximum_capacity": self.maximum_capacity,
-            "unit_measure": self.unit_measure,
-            "reservations": self.reservation_list.get_reservations()
-        }
-
-
 Resources = tuple([Resource(1, "CPU", 16, "cores"),
                    Resource(2, "RAM", 32, "GB"),
                    Resource(3, "Storage", 128, "GB")])
@@ -114,23 +45,6 @@ def get_resource_by_id(resource_id):
     for resource in Resources:
         if resource.resource_id == resource_id:
             return resource
-
-
-class ReservationStatus(Enum):
-    BLOCKED = 1
-    RESERVED = 2
-
-
-class Reservation:
-    def __init__(self, resource_id, user_name, start_time, duration, status=ReservationStatus.BLOCKED):
-        self.id = uuid.uuid4()
-        self.resource_id = resource_id
-        self.user_name = user_name
-        self.start_time = start_time
-        self.duration = duration
-        self.status = status
-
-
 def process_request(request, client):
     print(str(request))
     # AUTH
@@ -142,9 +56,9 @@ def process_request(request, client):
             user = User(client_name, client)
             users.append(user)
             new_user = True
-            response = Response(message=f'User {client_name} registered!')
+            response = Response(message=f'Your user "{client_name}" is now registered!')
         else:
-            response = Response(message=f'Welcome back, {user.name}')
+            response = Response(message=f'Welcome back, {user.name}!')
             notify_user(user, message="Another client started a session, you will be disconnected.", action="exit")
             user.client_socket.close()
             user.client_socket = client
@@ -163,8 +77,23 @@ def process_request(request, client):
         if user is None:
             response = Response(message="Couldn't block the resource.")
         else:
-            response = Response(message="To do blocking")
-            notify_all_users(f'{user.name} blocked X quantity ? of starting at ? for X minutes',
+            resource_id = int(params[1])
+            quantity = int(params[2])
+            start = datetime.strptime(" ".join(params[3:5]), "%d/%m/%Y %H:%M")
+            duration = int(params[5])
+
+            resource = get_resource_by_id(resource_id)
+            reservation = Reservation(resource_id=resource_id,
+                                      user_name=user.name,
+                                      reserved_quantity=quantity,
+                                      start_time=start,
+                                      duration=duration)
+            resource.get_reservation_list().add(reservation)
+            reservation_json = reservation.to_dict()
+            response = Response(message=reservation_json)
+            notify_all_users(f'{user.name} blocked {quantity} {resource.get_unit_measure()} of '
+                             f'{resource.get_name()} starting at {" ".join(params[3:5])} '
+                             f'for {duration} minutes',
                              username_to_exclude=user.name)
     elif True:
         response = Response(message=f"Command {command} not found!")

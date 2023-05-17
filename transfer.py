@@ -20,7 +20,7 @@ class Response:
             'type': "response",
             'message': self.message
         }
-        return json.dumps(response_dict)
+        return json.dumps(response_dict,default=str)
 class Request:
     def __init__(self, command, params=None):
         self.command = command
@@ -45,7 +45,7 @@ class Request:
             'command': self.command,
             'params': self.params if self.params is not None else ""
         }
-        return json.dumps(request_dict)
+        return json.dumps(request_dict,default=str)
 class Notification:
     def __init__(self, message, action=None):
         self.action = action
@@ -69,4 +69,4 @@ class Notification:
             'message': self.message,
             'action': self.action if self.action is not None else ""
         }
-        return json.dumps(notification_dict)
+        return json.dumps(notification_dict,default=str)

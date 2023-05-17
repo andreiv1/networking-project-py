@@ -61,16 +61,17 @@ def show_response(response):
             resources = message["resources"]
             headers = ["ID", "Resource", "Capacity", "Unit Measure", "Reservations"]
             table_data = []
+            # print(resources)
             for resource in resources:
                 reservations = resource["reservations"]
                 reservation_table_data = [
-                    [r["reservation_id"], r["user"], r["quantity"], r["start_date"], r["end_date"]] for r in
-                    reservations]
+                    [r["id"], r["user_name"], r["reserved_quantity"], r["start_time"], r["duration"]]
+                    for r in reservations]
                 resource_table_data = [resource["resource_id"], resource["name"], resource["maximum_capacity"],
                                        resource["unit_measure"],
                                        tabulate(reservation_table_data,
                                                 headers=["Reservation ID", "User", "Quantity", "Start Date",
-                                                         "Duration", "End Date"])]
+                                                         "Duration (minutes)"])]
                 table_data.append(resource_table_data)
             print(tabulate(table_data, headers=headers))
         else:
@@ -84,16 +85,17 @@ def show_notification(notification):
             if notification.get_action() == "exit":
                 raise TerminateMainThreadException()
 
-username = None
+user_name = None
 def main():
+    global user_name
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.connect((HOST, PORT))
         try:
             receive_thread = threading.Thread(target=receive_response, args=(server_socket,))
             receive_thread.start()
             user_input = input('Username: ')
-            username = user_input
-            send_request(server_socket, Request(command="auth", params=username))
+            user_name = user_input
+            send_request(server_socket, Request(command="auth", params=user_name))
             send_request(server_socket, Request(command="list_resources"))
             while user_input.strip() != 'exit':
                 user_input = input()
@@ -108,7 +110,7 @@ def main():
                             print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> "
                                   "<durationInMinutes>")
                         else:
-                            params = [username]
+                            params = [user_name]
                             params[1:] = tokens[1:]
                             send_request(server_socket, Request(command="block", params=params))
 
@@ -117,7 +119,7 @@ def main():
                             print("Usage: cancel <reservationID>")
                     elif tokens[0] == 'update':
                         if len(tokens) < 7:
-                            print("Usage: update <reservationID> <startDate> <startHour> <endDate> <endHour>")
+                            print("Usage: update <reservationID> <startDate> <startHour> <durationInMinutes>")
 
                     elif tokens[0] == 'finish':
                         if len(tokens) < 2:
