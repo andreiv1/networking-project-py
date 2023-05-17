@@ -120,8 +120,8 @@ def main():
                 if len(tokens) > 0:
                     if tokens[0] == 'help':
                         help_menu()
-                    elif tokens[0] == 'list_resources':
-                        send_request(server_socket, Request(command="list"))
+                    elif tokens[0] == 'list':
+                        send_request(server_socket, Request(command="list_resources"))
                     elif tokens[0] == 'block':
                         if len(tokens) < 6:
                             print("Usage: block <resourceID> <resourceQuantity> <dd/mm/yyyy> <HH:MM> <minutes>")
