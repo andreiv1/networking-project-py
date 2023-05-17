@@ -46,9 +46,9 @@ def get_user_by_name(name):
     return matched_users[0] if matched_users else None
 
 
-def notify_all_users(message, username_to_exclude=None):
+def notify_all_users(message, username_to_exclude=None, action=None):
     notified_users = 0
-    notification = Notification(message)
+    notification = Notification(message, action)
     for user in users:
         if username_to_exclude is not None:
             if user.name != username_to_exclude:
@@ -58,6 +58,11 @@ def notify_all_users(message, username_to_exclude=None):
             user.send_message(str(notification))
             notified_users += 1
     print(f'Notified {notified_users} users with: {message}')
+
+def notify_user(user, message, action=None):
+    notification = Notification(message, action)
+    user.send_message(str(notification))
+    print(f'Notified user {user.name} with: {message}, action=', str(action))
 
 class ReservationList:
     def __init__(self):
@@ -136,6 +141,7 @@ def process_request(request, client):
             response = Response(message=f'User {client_name} registered!')
         else:
             response = Response(message=f'Welcome back, {user.name}')
+            notify_user(user, message="Another client started a session, you will be disconnected.", action="exit")
             user.client_socket.close()
             user.client_socket = client
 
@@ -145,7 +151,7 @@ def process_request(request, client):
             notify_all_users(f'User {client_name} is online.', username_to_exclude=client_name)
     # LIST
     elif request.get_command() == 'list_resources':
-        resources = [resource.to_dict() for resource in Resources]
+        resources = {"resources": [resource.to_dict() for resource in Resources]}
         response = Response(message=resources)
     elif request.get_command() == 'block':
         print(request.get_params)

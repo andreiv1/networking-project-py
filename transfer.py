@@ -53,6 +53,9 @@ class Notification:
 
     def get_message(self):
         return self.message
+
+    def get_action(self):
+        return self.action
     @staticmethod
     def from_json(data):
         data = json.loads(data)
