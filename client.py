@@ -33,7 +33,6 @@ def receive_response(server):
                     show_response(Response.from_json(data))
                 elif data_json["type"] == "notification":
                     show_notification(Notification.from_json(data))
-                    pass
         except Exception as e:
             print(str(e))
 
@@ -42,8 +41,6 @@ def show_response(response):
         print("Response:", response.get_message())
 def show_notification(notification):
     if isinstance(notification, Notification):
-        sys.stdout.write("\r\033[K")
-        sys.stdout.flush()
         print("Notification:", notification.get_message())
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
@@ -52,6 +49,7 @@ def main():
         receive_thread.start()
         user_input = input('Username: ')
         send_request(server_socket, Request(command="auth", params=user_input))
+        send_request(server_socket, Request(command="list_resources"))
         while user_input.strip() != 'exit':
             user_input = input()
             tokens = user_input.strip().split()
