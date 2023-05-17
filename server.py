@@ -136,7 +136,7 @@ def process_request(request, client):
             response = Response(message=f'Welcome back, {user.name}')
             user.client_socket.close()
             user.client_socket = client
-        notify_all_users(f'User {client_name} is active!',username_to_exclude=client_name)
+        notify_all_users(f'User {client_name} is active!', username_to_exclude=client_name)
     # LIST
     elif request.get_command() == 'list_resources':
         resources = [resource.to_dict() for resource in Resources]

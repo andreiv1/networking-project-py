@@ -22,7 +22,6 @@ def send_request(server, request):
 
 def receive_response(server):
     while True:
-        print("Receiving")
         data = server.recv(BUFFER_SIZE).decode('utf-8')
         try:
             data_json = json.dumps(data)
