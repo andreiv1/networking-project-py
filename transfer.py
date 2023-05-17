@@ -20,7 +20,7 @@ class Response:
             'type': "response",
             'message': self.message
         }
-        return json.dumps(response_dict,default=str)
+        return json.dumps(response_dict, default=str)
 class Request:
     def __init__(self, command, params=None):
         self.command = command

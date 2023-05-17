@@ -4,7 +4,7 @@ import json
 from enum import Enum
 from datetime import datetime
 from transfer import Request, Response, Notification
-from server_classes import User, Resource, Reservation, ReservationStatus
+from server_classes import User, Resource, Reservation, ReservationStatus, ReservationQuantityOverflow
 
 HOST = 'localhost'
 PORT = 5556
@@ -77,24 +77,47 @@ def process_request(request, client):
         if user is None:
             response = Response(message="Couldn't block the resource.")
         else:
-            resource_id = int(params[1])
-            quantity = int(params[2])
-            start = datetime.strptime(" ".join(params[3:5]), "%d/%m/%Y %H:%M")
-            duration = int(params[5])
+            errors = []
+            try:
+                resource_id = int(params[1])
+            except ValueError:
+                errors.append("Resource id must be an integer.")
+            try:
+                quantity = int(params[2])
+                if quantity < 1:
+                    raise ValueError()
+            except ValueError:
+                errors.append("Quantity must be a positive integer greater than 0.")
+            try:
+                start = datetime.strptime(" ".join(params[3:5]), "%d/%m/%Y %H:%M")
+            except ValueError:
+                errors.append("Invalid start time format. Please use format: dd/mm/yyyy HH:MM")
+            try:
+                duration = int(params[5])
+                if duration < 1:
+                    raise ValueError()
+            except ValueError:
+                errors.append("Duration must be a positive integer greater than 0.")
 
-            resource = get_resource_by_id(resource_id)
-            reservation = Reservation(resource_id=resource_id,
-                                      user_name=user.name,
-                                      reserved_quantity=quantity,
-                                      start_time=start,
-                                      duration=duration)
-            resource.get_reservation_list().add(reservation)
-            reservation_json = reservation.to_dict()
-            response = Response(message=reservation_json)
-            notify_all_users(f'{user.name} blocked {quantity} {resource.get_unit_measure()} of '
-                             f'{resource.get_name()} starting at {" ".join(params[3:5])} '
-                             f'for {duration} minutes',
-                             username_to_exclude=user.name)
+            if len(errors) == 0:
+                resource = get_resource_by_id(resource_id)
+                reservation = Reservation(resource_id=resource_id,
+                                          user_name=user.name,
+                                          reserved_quantity=quantity,
+                                          start_time=start,
+                                          duration=duration)
+                try:
+                    resource.get_reservation_list().add(reservation)
+                    reservation_json = reservation.to_dict()
+                    response = Response(message=reservation_json)
+                except ReservationQuantityOverflow as e:
+                    response = Response(message=str(e))
+                notify_all_users(f'{user.name} blocked {quantity} {resource.get_unit_measure()} of '
+                                 f'{resource.get_name()} starting at {" ".join(params[3:5])} '
+                                 f'for {duration} minutes',
+                                 username_to_exclude=user.name)
+            else:
+                response = Response(message='Errors: \n' + "\n".join(errors))
     elif True:
         response = Response(message=f"Command {command} not found!")
 

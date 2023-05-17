@@ -2,6 +2,8 @@ import socket
 import threading
 import uuid
 from enum import Enum
+from datetime import timedelta
+from datetime import timedelta
 
 import socket
 
@@ -44,10 +46,15 @@ class ResourceReservationList:
         self.maximum_capacity = maximum_capacity
         self.lock = threading.Lock()
 
+    def get_current_capacity(self):
+        return self.capacity
+
     def add(self, reservation):
         with self.lock:
             if self.capacity + reservation.get_quantity() > self.maximum_capacity:
-                raise ReservationQuantityOverflow()
+                raise ReservationQuantityOverflow(f'The capacity tried to block ({reservation.get_quantity()}) '
+                                                  f'is not possible.\n'
+                                                  f'Resource capacity: ({self.capacity}/{self.maximum_capacity})')
             self.reservations.append(reservation)
 
     def remove(self, reservation):
@@ -86,6 +93,7 @@ class Resource:
         return {
             "resource_id": self.resource_id,
             "name": self.name,
+            "current_capacity": self.reservation_list.get_current_capacity(),
             "maximum_capacity": self.maximum_capacity,
             "unit_measure": self.unit_measure,
             "reservations": [reservation.to_dict() for reservation in self.reservation_list.reservations]
@@ -114,12 +122,17 @@ class Reservation:
     def get_quantity(self):
         return self.reserved_quantity
 
+    @property
+    def end_time(self):
+        return self.start_time + timedelta(minutes=self.duration)
+
     def to_dict(self):
         return {
             "id": str(self.id),
             "user_name": self.user_name,
             "reserved_quantity": self.reserved_quantity,
             "start_time": self.start_time,
+            "end_time": self.end_time,
             "duration": self.duration,
-            "status": self.status
+            "status": self.status.name
         }

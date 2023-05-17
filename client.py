@@ -19,12 +19,11 @@ class TerminateMainThreadException(Exception):
 
 def help_menu():
     print("==================   COMMANDS: ===================================")
-    print("** list_resources -> this shows the resources")
-    print("** list_reservations -> this shows my resource reservation")
-    print("** block <resourceID> <resourceQuantity> <startDate> <startHour> <durationInMinutes>")
+    print("** list -> shows the table with resources and its reservation")
+    print("** block <resourceID> <resourceQuantity> <dd/mm/yyyy> <HH:MM> <minutes>")
     print("** cancel <reservationID>")
-    print("** update <reservationID> <startDate> <startHour> <endDate> <endHour>")
-    print("** finish <reservationID> -> only for blocked resources")
+    print("** update <reservationID> <dd/mm/yyyy> <HH:MM> <minutes>")
+    print("** finish <reservationID>")
     print("==================================================================")
 
 
@@ -40,17 +39,15 @@ def receive_response(server):
             print("Connection to the server closed")
             break
 
-        try:
-            data_json = json.loads(data)
-            # print(data_json)
-            if "type" in data_json:
-                # print(data_json["type"])
-                if data_json["type"] == "response":
-                    show_response(Response.from_json(data))
-                elif data_json["type"] == "notification":
-                    show_notification(Notification.from_json(data))
-        except Exception as e:
-            print(str(e))
+        data_json = json.loads(data)
+        if "type" in data_json:
+            # print(data_json["type"])
+            if data_json["type"] == "response":
+                show_response(Response.from_json(data))
+            elif data_json["type"] == "notification":
+                show_notification(Notification.from_json(data))
+
+
 
 
 def show_response(response):
@@ -61,14 +58,15 @@ def show_response(response):
             resources = message["resources"]
             # print(resources)
 
-            resource_headers = ["ID", "Resource", "Capacity", "Unit Measure","",""]
+            resource_headers = ["ID", "Resource", "Capacity", "Unit Measure", "", ""]
             resource_table = []
 
             reservations_headers = ["Reserv ID", "Username", "Quantity", "StartTime", "Duration", "Status"]
 
             for resource in resources:
                 resource_row = [
-                    resource["resource_id"], resource["name"], resource["maximum_capacity"], resource["unit_measure"]
+                    resource["resource_id"], resource["name"],
+                    f'{resource["current_capacity"]}/{resource["maximum_capacity"]}', resource["unit_measure"]
                 ]
                 resource_table.append(resource_row)
                 reservations_table = []
@@ -125,8 +123,7 @@ def main():
                         send_request(server_socket, Request(command="list_resources"))
                     elif tokens[0] == 'block':
                         if len(tokens) < 6:
-                            print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> "
-                                  "<durationInMinutes>")
+                            print("Usage: block <resourceID> <resourceQuantity> <dd/mm/yyyy> <HH:MM> <minutes>")
                         else:
                             params = [user_name]
                             params[1:] = tokens[1:]
@@ -137,7 +134,7 @@ def main():
                             print("Usage: cancel <reservationID>")
                     elif tokens[0] == 'update':
                         if len(tokens) < 7:
-                            print("Usage: update <reservationID> <startDate> <startHour> <durationInMinutes>")
+                            print("Usage: update <reservationID> <dd/mm/yyyy> <HH:MM> <minutes>")
 
                     elif tokens[0] == 'finish':
                         if len(tokens) < 2:
@@ -146,8 +143,7 @@ def main():
                         print("Unknown command, write 'help' to view commands.")
         except TerminateMainThreadException:
             sys.exit()
-        except Exception as e:
-            print(e)
+
 
 
 if __name__ == '__main__':
