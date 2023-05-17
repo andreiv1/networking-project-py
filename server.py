@@ -46,12 +46,18 @@ def get_user_by_name(name):
     return matched_users[0] if matched_users else None
 
 
-def notify_all_users(message):
-    print(f"Notifying {len(users)} users with: {message}.")
+def notify_all_users(message, username_to_exclude=None):
+    notified_users = 0
+    notification = Notification(message)
     for user in users:
-        notification = Notification(message)
-        user.send_message(str(notification))
-
+        if username_to_exclude is not None:
+            if user.name != username_to_exclude:
+                user.send_message(str(notification))
+                notified_users += 1
+        else:
+            user.send_message(str(notification))
+            notified_users += 1
+    print(f'Notified {notified_users} users with: {message}')
 
 class ReservationList:
     def __init__(self):
@@ -130,7 +136,7 @@ def process_request(request, client):
             response = Response(message=f'Welcome back, {user.name}')
             user.client_socket.close()
             user.client_socket = client
-        notify_all_users(f'User {client_name} is active!')
+        notify_all_users(f'User {client_name} is active!',username_to_exclude=client_name)
     # LIST
     elif request.get_command() == 'list_resources':
         resources = [resource.to_dict() for resource in Resources]

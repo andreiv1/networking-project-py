@@ -26,7 +26,6 @@ def receive_response(server):
         data = server.recv(BUFFER_SIZE).decode('utf-8')
         try:
             data_json = json.dumps(data)
-            print(data_json)
             if "type" in data_json:
                 print(data_json)
         except Exception as e:
