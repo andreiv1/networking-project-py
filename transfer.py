@@ -54,7 +54,7 @@ class Notification:
     @staticmethod
     def from_json(data):
         data = json.loads(data)
-        return Request(data["message"], data["action"])
+        return Notification(data["message"], data["action"])
 
     def __str__(self):
         notification_dict = {

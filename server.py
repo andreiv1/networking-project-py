@@ -117,7 +117,31 @@ class Reservation:
         self.duration = duration
         self.status = status
 
+def process_request(request, client):
+    print(str(request))
+    if request.get_command() == 'auth':
+        client_name = request.get_params()
+        user = get_user_by_name(client_name)
+        if user is None:
+            user = User(client_name, client)
+            users.append(user)
+            response = Response(message=f'User {client_name} registered!')
+        else:
+            response = Response(message=f'Welcome back, {user.name}')
+            user.client_socket.close()
+            user.client_socket = client
+        notify_all_users(f'User {client_name} is active!')
+    # LIST
+    elif request.get_command() == 'list_resources':
+        resources = [resource.to_dict() for resource in Resources]
+        response = Response(message=resources)
+    elif request.get_command() == 'block':
+        print(request.get_params)
+        response = Response(message="To do blocking")
+    elif True:
+        response = Response(message=f"Command {command} not found!")
 
+    return response
 def handle_client(client):
     with client:
         while True:
@@ -131,36 +155,7 @@ def handle_client(client):
                 break
             try:
                 request = Request.from_json(data.decode('utf-8'))
-                print(str(request))
-
-                if request.get_command() == 'auth':
-                    client_name = request.get_params()
-                    user = get_user_by_name(client_name)
-                    if user is None:
-                        user = User(client_name, client)
-                        users.append(user)
-                        response = Response(message=f'User {client_name} registered!')
-                    else:
-                        response = Response(message=f'Welcome back, {user.name}')
-                        user.client_socket.close()
-                        user.client_socket = client
-                    notify_all_users(f'User {client_name} is active!')
-                # LIST
-                elif request.get_command() == 'list_resources':
-                    resources = [resource.to_dict() for resource in Resources]
-                    response = Response(message=resources)
-                elif request.get_command() == 'block':
-                    print(request.get_params)
-                    # resource_id = param[0]
-                    # resource_quantity = param[1]
-
-                    # start_date = datetime.strptime(" ".join(param[2:4]), "%d/%m/%Y %H:%M")
-                    # duration = int(param[5])
-                    response = Response(message="To do blocking")
-                    # response = Response(message=f"To block at {str(start_date)} for {duration} minutes")
-                elif True:
-                    response = Response(message=f"Command {command} not found!")
-
+                response = process_request(request, client)
                 client.sendall(str(response).encode('utf-8'))
             except json.decoder.JSONDecodeError:
                 break
