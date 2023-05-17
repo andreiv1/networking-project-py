@@ -51,10 +51,12 @@ class Notification:
         self.action = action
         self.message = message
 
+    def get_message(self):
+        return self.message
     @staticmethod
     def from_json(data):
         data = json.loads(data)
-        if data["type"] == "notification":
+        if data["type"] != "notification":
             return None
         return Notification(data["message"], data["action"])
 

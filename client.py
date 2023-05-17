@@ -1,7 +1,7 @@
 import socket
 import threading
 import json
-from transfer import Request, Response
+from transfer import Request, Response, Notification
 
 HOST = 'localhost'
 PORT = 5556
@@ -24,11 +24,24 @@ def receive_response(server):
     while True:
         data = server.recv(BUFFER_SIZE).decode('utf-8')
         try:
-            data_json = json.dumps(data)
+            data_json = json.loads(data)
+            # print(data_json)
             if "type" in data_json:
-                print(data_json)
+                # print(data_json["type"])
+                if data_json["type"] == "response":
+                    show_response(Response.from_json(data))
+                elif data_json["type"] == "notification":
+                    show_notification(Notification.from_json(data))
+                    pass
         except Exception as e:
             print(str(e))
+
+def show_response(response):
+    if isinstance(response, Response):
+        print("Response: ", response.get_message())
+def show_notification(notification):
+    if isinstance(notification, Notification):
+        print("Notification: ", notification.get_message())
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.connect((HOST, PORT))

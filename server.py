@@ -128,15 +128,21 @@ def process_request(request, client):
     if request.get_command() == 'auth':
         client_name = request.get_params()
         user = get_user_by_name(client_name)
+        new_user = False
         if user is None:
             user = User(client_name, client)
             users.append(user)
+            new_user = True
             response = Response(message=f'User {client_name} registered!')
         else:
             response = Response(message=f'Welcome back, {user.name}')
             user.client_socket.close()
             user.client_socket = client
-        notify_all_users(f'User {client_name} is active!', username_to_exclude=client_name)
+
+        if new_user:
+            notify_all_users(f'User {client_name} registered!', username_to_exclude=client_name)
+        else:
+            notify_all_users(f'User {client_name} is online.', username_to_exclude=client_name)
     # LIST
     elif request.get_command() == 'list_resources':
         resources = [resource.to_dict() for resource in Resources]
