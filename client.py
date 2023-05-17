@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+import sys
 from transfer import Request, Response, Notification
 
 HOST = 'localhost'
@@ -38,10 +39,12 @@ def receive_response(server):
 
 def show_response(response):
     if isinstance(response, Response):
-        print("Response: ", response.get_message())
+        print("Response:", response.get_message())
 def show_notification(notification):
     if isinstance(notification, Notification):
-        print("Notification: ", notification.get_message())
+        sys.stdout.write("\r\033[K")
+        sys.stdout.flush()
+        print("Notification:", notification.get_message())
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.connect((HOST, PORT))
@@ -50,12 +53,11 @@ def main():
         user_input = input('Username: ')
         send_request(server_socket, Request(command="auth", params=user_input))
         while user_input.strip() != 'exit':
-            user_input = input('>')
+            user_input = input()
             tokens = user_input.strip().split()
             if tokens[0] == 'help':
                 help_menu()
             elif tokens[0] == 'list_resources':
-                print("List resources:")
                 send_request(server_socket, Request(command="list_resources"))
             elif tokens[0] == 'block':
                 if len(tokens) < 6:
