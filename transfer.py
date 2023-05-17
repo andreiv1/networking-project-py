@@ -8,6 +8,8 @@ class Response:
     @staticmethod
     def from_json(data):
         data = json.loads(data)
+        if data["type"] != "response":
+            return None
         return Response(data["message"])
 
     def get_message(self):
@@ -19,8 +21,6 @@ class Response:
             'message': self.message
         }
         return json.dumps(response_dict)
-
-
 class Request:
     def __init__(self, command, params=None):
         self.command = command
@@ -35,6 +35,8 @@ class Request:
     @staticmethod
     def from_json(data):
         data = json.loads(data)
+        if data["type"] != "request":
+            return None
         return Request(data["command"], data["params"])
 
     def __str__(self):
@@ -44,8 +46,6 @@ class Request:
             'params': self.params if self.params is not None else ""
         }
         return json.dumps(request_dict)
-
-
 class Notification:
     def __init__(self, message, action=None):
         self.action = action
@@ -54,6 +54,8 @@ class Notification:
     @staticmethod
     def from_json(data):
         data = json.loads(data)
+        if data["type"] == "notification":
+            return None
         return Notification(data["message"], data["action"])
 
     def __str__(self):

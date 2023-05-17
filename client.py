@@ -1,5 +1,6 @@
 import socket
 import threading
+import json
 from transfer import Request, Response
 
 HOST = 'localhost'
@@ -18,36 +19,25 @@ def help_menu():
 
 def send_request(server, request):
     server.sendall(str(request).encode('utf-8'))
-    data = server.recv(BUFFER_SIZE).decode('utf-8')
-    response = Response.from_json(data)
-    return response
 
-def receive_notifications(server):
+def receive_response(server):
     while True:
+        print("Receiving")
+        data = server.recv(BUFFER_SIZE).decode('utf-8')
         try:
-            data = server.recv(BUFFER_SIZE).decode('utf-8')
-            if not data:
-                break
-            response = Response.from_json(data)
-            print("Received notification: {}".format(str(response)))
+            data_json = json.dumps(data)
+            print(data_json)
+            if "type" in data_json:
+                print(data_json)
         except Exception as e:
-            print("Error receiving notification:", str(e))
-            break
-# Commands
-def auth(server, user_name):
-    response = send_request(server, Request(command="auth", params=user_name))
-    print(str(response))
-
-def list_resources(server):
-    response = send_request(server, Request(command="list_resources"))
-    print(str(response))
+            print(str(e))
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.connect((HOST, PORT))
+        receive_thread = threading.Thread(target=receive_response,args=(server_socket,))
+        receive_thread.start()
         user_input = input('Username: ')
-        auth(server_socket, user_input)
-        notification_thread = threading.Thread(target=receive_notifications, args=(server_socket,))
-        notification_thread.start()
+        send_request(server_socket, Request(command="auth", params=user_input))
         while user_input.strip() != 'exit':
             user_input = input('>')
             tokens = user_input.strip().split()
@@ -55,12 +45,13 @@ def main():
                 help_menu()
             elif tokens[0] == 'list_resources':
                 print("List resources:")
-                list_resources(server_socket)
+                send_request(server_socket, Request(command="list_resources"))
             elif tokens[0] == 'block':
                 if len(tokens) < 6:
                     print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> <duration>")
                 else:
-                    block(server_socket, tokens[1:])
+                    print("to send request")
+                    pass
 
             elif tokens[0] == 'cancel':
                 if len(tokens) < 2:
