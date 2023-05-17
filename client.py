@@ -59,21 +59,39 @@ def show_response(response):
         if "resources" in message:
             print("====================  RESOURCES ==================== ")
             resources = message["resources"]
-            headers = ["ID", "Resource", "Capacity", "Unit Measure", "Reservations"]
-            table_data = []
             # print(resources)
+
+            resource_headers = ["ID", "Resource", "Capacity", "Unit Measure","",""]
+            resource_table = []
+
+            reservations_headers = ["Reserv ID", "Username", "Quantity", "StartTime", "Duration", "Status"]
+
             for resource in resources:
+                resource_row = [
+                    resource["resource_id"], resource["name"], resource["maximum_capacity"], resource["unit_measure"]
+                ]
+                resource_table.append(resource_row)
+                reservations_table = []
                 reservations = resource["reservations"]
-                reservation_table_data = [
-                    [r["id"], r["user_name"], r["reserved_quantity"], r["start_time"], r["duration"]]
-                    for r in reservations]
-                resource_table_data = [resource["resource_id"], resource["name"], resource["maximum_capacity"],
-                                       resource["unit_measure"],
-                                       tabulate(reservation_table_data,
-                                                headers=["Reservation ID", "User", "Quantity", "Start Date",
-                                                         "Duration (minutes)"])]
-                table_data.append(resource_table_data)
-            print(tabulate(table_data, headers=headers))
+
+                if len(reservations) > 0:
+                    resource_table.append(["Reservations:"])
+                    resource_table.append(reservations_headers)
+                    for r in reservations:
+                        reservation_row = [
+                            r["id"], r["user_name"], r["reserved_quantity"], r["start_time"], r["duration"], r["status"]
+                        ]
+                        reservations_table.append(reservation_row)
+
+                    resource_table.extend(reservations_table)
+
+                    resource_table.append([])
+                else:
+                    resource_table.append(["No reservations."])
+                    resource_table.append([])
+
+            print(tabulate(resource_table, headers=resource_headers))
+
         else:
             print(message)
 
