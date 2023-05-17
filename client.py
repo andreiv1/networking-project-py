@@ -8,6 +8,7 @@ HOST = 'localhost'
 PORT = 5556
 BUFFER_SIZE = 1024
 
+is_running = True
 def help_menu():
     print("==================   COMMANDS: ===================================")
     print("** list_resources -> this shows the resources")
@@ -23,7 +24,13 @@ def send_request(server, request):
 
 def receive_response(server):
     while True:
-        data = server.recv(BUFFER_SIZE).decode('utf-8')
+        try:
+            data = server.recv(BUFFER_SIZE).decode('utf-8')
+        except ConnectionResetError:
+            print("Connection to the server closed")
+            quit()
+            break
+
         try:
             data_json = json.loads(data)
             # print(data_json)
@@ -53,29 +60,30 @@ def main():
         while user_input.strip() != 'exit':
             user_input = input()
             tokens = user_input.strip().split()
-            if tokens[0] == 'help':
-                help_menu()
-            elif tokens[0] == 'list_resources':
-                send_request(server_socket, Request(command="list_resources"))
-            elif tokens[0] == 'block':
-                if len(tokens) < 6:
-                    print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> <duration>")
-                else:
-                    print("to send request")
-                    pass
+            if len(tokens) > 0:
+                if tokens[0] == 'help':
+                    help_menu()
+                elif tokens[0] == 'list_resources':
+                    send_request(server_socket, Request(command="list_resources"))
+                elif tokens[0] == 'block':
+                    if len(tokens) < 6:
+                        print("Usage: block <resourceID> <resourceQuantity> <startDate> <startHour> <duration>")
+                    else:
+                        print("to send request")
+                        pass
 
-            elif tokens[0] == 'cancel':
-                if len(tokens) < 2:
-                    print("Usage: cancel <reservationID>")
-            elif tokens[0] == 'update':
-                if len(tokens) < 7:
-                    print("Usage: update <reservationID> <startDate> <startHour> <endDate> <endHour>")
+                elif tokens[0] == 'cancel':
+                    if len(tokens) < 2:
+                        print("Usage: cancel <reservationID>")
+                elif tokens[0] == 'update':
+                    if len(tokens) < 7:
+                        print("Usage: update <reservationID> <startDate> <startHour> <endDate> <endHour>")
 
-            elif tokens[0] == 'finish':
-                if len(tokens) < 2:
-                    print("Usage: finish <reservationID>")
-            elif user_input != 'exit':
-                print("Unknown command, write 'help' to view commands.")
+                elif tokens[0] == 'finish':
+                    if len(tokens) < 2:
+                        print("Usage: finish <reservationID>")
+                elif user_input != 'exit':
+                    print("Unknown command, write 'help' to view commands.")
 
 if __name__ == '__main__':
     main()
