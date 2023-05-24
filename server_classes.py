@@ -62,9 +62,6 @@ class ResourceReservationList:
     def remove(self, reservation):
         with self.lock:
             self.reservations.remove(reservation)
-            self.capacity -= reservation.get_quantity()
-            if self.capacity < 0:
-                self.capacity = 0
 
     def get_all(self):
         with self.lock:

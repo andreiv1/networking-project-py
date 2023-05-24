@@ -8,7 +8,7 @@ from tabulate import tabulate
 
 HOST = 'localhost'
 PORT = 5556
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 20480
 
 is_running = True
 
@@ -38,7 +38,7 @@ def receive_response(server):
         except ConnectionResetError:
             print("Connection to the server closed")
             break
-        print(data)
+        # print(data)
         data_json = json.loads(data)
         if "type" in data_json:
             # print(data_json["type"])
@@ -52,14 +52,14 @@ def show_response(response):
     if isinstance(response, Response):
         message = response.get_message()
         if "resources" in message:
-            print("====================  RESOURCES ==================== ")
+            print("========================================  RESOURCES ======================================== ")
             resources = message["resources"]
             # print(resources)
 
             resource_headers = ["ID", "Resource", "Max Capacity", "Unit Measure", "", ""]
             resource_table = []
 
-            reservations_headers = ["Reserv ID", "Username", "Quantity", "StartTime", "Duration", "Status"]
+            reservations_headers = ["Reserv ID", "Username", "Quantity", "Start Time", "Duration", "Status"]
 
             for resource in resources:
                 resource_row = [
@@ -117,7 +117,10 @@ def main():
             while user_input.strip() != 'exit':
                 user_input = input()
                 tokens = user_input.strip().split()
+                params = [user_name]
+
                 if len(tokens) > 0:
+                    params[1:] = tokens[1:]
                     if tokens[0] == 'help':
                         help_menu()
                     elif tokens[0] == 'list':
@@ -126,13 +129,14 @@ def main():
                         if len(tokens) < 6:
                             print("Usage: block <resourceID> <resourceQuantity> <dd/mm/yyyy> <HH:MM> <minutes>")
                         else:
-                            params = [user_name]
-                            params[1:] = tokens[1:]
                             send_request(server_socket, Request(command="block", params=params))
 
                     elif tokens[0] == 'cancel':
                         if len(tokens) < 2:
                             print("Usage: cancel <reservationID>")
+
+                        else:
+                            send_request(server_socket, Request(command="cancel", params=params))
                     elif tokens[0] == 'update':
                         if len(tokens) < 7:
                             print("Usage: update <reservationID> <dd/mm/yyyy> <HH:MM> <minutes>")

@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+import uuid
 from enum import Enum
 from datetime import datetime
 from transfer import Request, Response, Notification
@@ -9,7 +10,7 @@ from server_classes import ReservationQuantityOverflow, ReservationOverlapError
 
 HOST = 'localhost'
 PORT = 5556
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 20480
 is_running = True
 
 users = []
@@ -46,6 +47,13 @@ def get_resource_by_id(resource_id):
     for resource in Resources:
         if resource.resource_id == resource_id:
             return resource
+    return None
+
+def get_reservation_by_id(reservation_id):
+    for resource in Resources:
+        for r in resource.get_reservation_list().get_all():
+            if r.id == reservation_id:
+                return r, resource
     return None
 def process_request(request, client):
     print(str(request))
@@ -119,7 +127,10 @@ def process_request(request, client):
                 try:
                     resource.get_reservation_list().add(reservation)
                     reservation_json = reservation.to_dict()
-                    response = Response(message=reservation_json)
+                    response = Response(message=f'Success: {reservation_json["reserved_quantity"]} '
+                                                f'{resource.get_unit_measure()} blocked for '
+                                                f'{reservation_json["duration"]} minutes starting at '
+                                                f'{reservation_json["start_time"]}')
                     notify_all_users(f'{user.name} blocked {quantity} {resource.get_unit_measure()} of '
                                      f'{resource.get_name()} starting at {" ".join(params[3:5])} '
                                      f'for {duration} minutes',
@@ -131,7 +142,28 @@ def process_request(request, client):
 
 
             else:
-                response = Response(message='Errors: \n' + "\n".join(errors))
+                response = Response(message='ERRORS: \n' + "\n".join(errors))
+    elif request.get_command() == 'cancel':
+        params = request.get_params()
+        if len(params) > 0:
+            errors = []
+            user_name = params[0]
+            try:
+                id = uuid.UUID(params[1])
+            except ValueError:
+                errors.append("Id is not valid.")
+            if len(errors) > 0:
+                response = Response(message='ERRORS: \n' + "\n".join(errors))
+            else:
+                reservation, resource = get_reservation_by_id(id)
+                resource.get_reservation_list().remove(reservation)
+                response = Response(message=f'Reservation {id} cancelled!')
+                notify_all_users(f'{user_name} cancelled reservation',
+                                 username_to_exclude=user_name)
+
+        else:
+            response = Response(message=f'You must specify an id.')
+
     elif True:
         response = Response(message=f"Command {command} not found!")
 
