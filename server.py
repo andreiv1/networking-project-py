@@ -156,14 +156,58 @@ def process_request(request, client):
                 response = Response(message='ERRORS: \n' + "\n".join(errors))
             else:
                 reservation, resource = get_reservation_by_id(id)
-                resource.get_reservation_list().remove(reservation)
-                response = Response(message=f'Reservation {id} cancelled!')
-                notify_all_users(f'{user_name} cancelled reservation',
+                if reservation is None:
+                    response = Response(message=f'Reservation id is not valid!')
+                else:
+                    if reservation.user_name != user_name:
+                        response = Response(message=f'ERROR: Only {reservation.user_name} is allowed cancel its reservation.')
+                    else:
+                        resource.get_reservation_list().remove(reservation)
+                        response = Response(message=f'SUCCESS: Reservation {id} cancelled!')
+                        notify_all_users(f'{user_name} cancelled its reservation',
                                  username_to_exclude=user_name)
 
         else:
-            response = Response(message=f'You must specify an id.')
-
+            response = Response(message=f'ERROR: You must specify an id.')
+    elif request.get_command() == 'update':
+        params = request.get_params()
+        if len(params) > 0:
+            errors = []
+            user_name = params[0]
+            try:
+                id = uuid.UUID(params[1])
+            except ValueError:
+                errors.append("Id is not valid.")
+            try:
+                start = datetime.strptime(" ".join(params[2:4]), "%d/%m/%Y %H:%M")
+            except ValueError:
+                errors.append("Invalid start time format. Please use format: dd/mm/yyyy HH:MM")
+            try:
+                duration = int(params[4])
+                if duration < 1:
+                    raise ValueError()
+            except ValueError:
+                errors.append("Duration must be a positive integer greater than 0.")
+            if len(errors) > 0:
+                response = Response(message='ERRORS: \n' + "\n".join(errors))
+            else:
+                reservation, resource = get_reservation_by_id(id)
+                if reservation is None:
+                    response = Response(message=f'ERROR: Reservation id is not valid!')
+                else:
+                    if reservation.user_name != user_name:
+                        response = Response(
+                            message=f'ERROR: Only {reservation.user_name} is allowed update its reservation.')
+                    else:
+                        resource.get_reservation_list().remove(reservation)
+                        reservation.start_time = start
+                        reservation.duration = duration
+                        resource.get_reservation_list().add(reservation)
+                        response = Response(message=f'SUCCESS: Reservation {id} updated! It starts at {start} with a duration of {duration} minutes')
+                        notify_all_users(f'{user_name} updated its reservation',
+                                         username_to_exclude=user_name)
+    elif request.get_command() == 'finish':
+        pass
     elif True:
         response = Response(message=f"Command {command} not found!")
 

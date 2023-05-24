@@ -39,13 +39,18 @@ def receive_response(server):
             print("Connection to the server closed")
             break
         # print(data)
-        data_json = json.loads(data)
-        if "type" in data_json:
-            # print(data_json["type"])
-            if data_json["type"] == "response":
-                show_response(Response.from_json(data))
-            elif data_json["type"] == "notification":
-                show_notification(Notification.from_json(data))
+        try:
+            data_json = json.loads(data)
+            if "type" in data_json:
+                # print(data_json["type"])
+                if data_json["type"] == "response":
+                    show_response(Response.from_json(data))
+                elif data_json["type"] == "notification":
+                    show_notification(Notification.from_json(data))
+
+        except Exception as e:
+            print(f'Error receiving data from server.')
+            break
 
 
 def show_response(response):
@@ -134,16 +139,18 @@ def main():
                     elif tokens[0] == 'cancel':
                         if len(tokens) < 2:
                             print("Usage: cancel <reservationID>")
-
                         else:
                             send_request(server_socket, Request(command="cancel", params=params))
                     elif tokens[0] == 'update':
-                        if len(tokens) < 7:
+                        if len(tokens) < 5:
                             print("Usage: update <reservationID> <dd/mm/yyyy> <HH:MM> <minutes>")
-
+                        else:
+                            send_request(server_socket, Request(command="update",params=params))
                     elif tokens[0] == 'finish':
                         if len(tokens) < 2:
                             print("Usage: finish <reservationID>")
+                        else:
+                            send_request(server_socket, Request(command="finish", params=params))
                     elif user_input != 'exit':
                         print("Unknown command, write 'help' to view commands.")
         except TerminateMainThreadException:

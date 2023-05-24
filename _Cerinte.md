@@ -11,6 +11,6 @@
 
 [ ] Clientul care a blocat resursa poate finaliza rezervarea, caz in care server-ul notifica toti clientii autentificati in privinta noii rezervari create;
 
-[ ] Un client poate actualiza datele de inceput si sfarsit pentru o rezervare facuta de el in prealabil, caz in care server-ul va notifica toti clientii autentificati in privinta schimbarii respective;
+[x] Un client poate actualiza datele de inceput si sfarsit pentru o rezervare facuta de el in prealabil, caz in care server-ul va notifica toti clientii autentificati in privinta schimbarii respective;
 
-[ ] Un client poate sterge o rezervare facuta de el in prealabil, caz in care server-ul va notifica toti clientii autentificati in privinta stergerii acesteia.
+[x] Un client poate sterge o rezervare facuta de el in prealabil, caz in care server-ul va notifica toti clientii autentificati in privinta stergerii acesteia.

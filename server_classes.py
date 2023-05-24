@@ -100,7 +100,7 @@ class Resource:
 
 class ReservationStatus(Enum):
     BLOCKED = 1
-    RESERVED = 2
+    FINISHED = 2
 
 
 class Reservation:
