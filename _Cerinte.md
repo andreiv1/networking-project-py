@@ -9,7 +9,7 @@
 
 [x] Clientul care a initiat rezervarea poate anula solicitarea, caz in care server-ul notifica toti clientii ca resursa nu mai este blocata pe intervalul respectiv;
 
-[ ] Clientul care a blocat resursa poate finaliza rezervarea, caz in care server-ul notifica toti clientii autentificati in privinta noii rezervari create;
+[x] Clientul care a blocat resursa poate finaliza rezervarea, caz in care server-ul notifica toti clientii autentificati in privinta noii rezervari create;
 
 [x] Un client poate actualiza datele de inceput si sfarsit pentru o rezervare facuta de el in prealabil, caz in care server-ul va notifica toti clientii autentificati in privinta schimbarii respective;
 

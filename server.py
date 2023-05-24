@@ -54,7 +54,7 @@ def get_reservation_by_id(reservation_id):
         for r in resource.get_reservation_list().get_all():
             if r.id == reservation_id:
                 return r, resource
-    return None
+    return None, None
 def process_request(request, client):
     print(str(request))
     # AUTH
@@ -207,7 +207,36 @@ def process_request(request, client):
                         notify_all_users(f'{user_name} updated its reservation',
                                          username_to_exclude=user_name)
     elif request.get_command() == 'finish':
-        pass
+        params = request.get_params()
+        if len(params) > 0:
+            errors = []
+            user_name = params[0]
+            try:
+                id = uuid.UUID(params[1])
+            except ValueError:
+                errors.append("Id is not valid.")
+
+            if len(errors) > 0:
+                response = Response(message='ERRORS: \n' + "\n".join(errors))
+            else:
+                reservation, resource = get_reservation_by_id(id)
+                if reservation is None:
+                    response = Response(message=f'ERROR: Reservation id is not valid!')
+                else:
+                    if reservation.user_name != user_name:
+                        response = Response(
+                            message=f'ERROR: Only {reservation.user_name} is allowed finish its reservation.')
+                    else:
+                        if reservation.status != ReservationStatus.FINISHED:
+                            resource.get_reservation_list().remove(reservation)
+                            reservation.status = ReservationStatus.FINISHED
+                            resource.get_reservation_list().add(reservation)
+                            response = Response(message=f'SUCCESS: User {user_name} finished its reservation')
+                            notify_all_users(f'{user_name} finished its reservation', username_to_exclude=user_name)
+                        else:
+                            response = Response(message=f'FAILURE: Reservation is already finished!')
+
+
     elif True:
         response = Response(message=f"Command {command} not found!")
 
